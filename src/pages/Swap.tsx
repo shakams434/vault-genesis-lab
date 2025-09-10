@@ -49,7 +49,7 @@ export default function Swap() {
     ? (parseFloat(estimatedOutput) * 0.98).toFixed(6)
     : "0.00";
 
-  const swapAssetsDirection = () => {
+  const handleSwapDirection = () => {
     const temp = fromAsset;
     setFromAsset(toAsset);
     setToAsset(temp);
@@ -161,7 +161,7 @@ export default function Swap() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={swapAssetsDirection}
+                  onClick={handleSwapDirection}
                   className="rounded-full"
                 >
                   <ArrowDownUp className="h-4 w-4" />
