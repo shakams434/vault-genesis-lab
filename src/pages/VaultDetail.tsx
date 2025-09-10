@@ -1,0 +1,357 @@
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useUserStore } from "@/hooks/useUserStore";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft,
+  DollarSign,
+  Activity,
+  TrendingUp,
+  Shield,
+  Users,
+  Vault,
+  ExternalLink,
+  Copy,
+  Coins
+} from "lucide-react";
+
+const vaultsData = [
+  {
+    id: "usdc-core",
+    name: "USDC Core Vault",
+    asset: "USDC",
+    apy: "7.5%",
+    tvl: "$10,247,830",
+    availableLiquidity: "$2,847,293",
+    risk: "Core",
+    riskLevel: 1,
+    description: "Conservative vault focused on stable returns with USDC",
+    curator: "Gauntlet Risk",
+    guardian: "Nexus Mutual",
+    performanceFee: "10.00%",
+    feeRecipient: "Compound DAO",
+    owner: "Compound DAO",
+    vaultAddress: "0xF5C8...3cCF",
+    guardianAddress: "0x8Ab7...F6e5",
+    allocation: [
+      { protocol: "wsETH / WETH", percentage: 93.15, apy: "3.56%", totalSupply: "$22.93M", icon: "⚡" },
+      { protocol: "WBTC / WETH", percentage: 5.08, apy: "1.98%", totalSupply: "$1.25M", icon: "₿" },
+      { protocol: "WETH (idle)", percentage: 1.78, apy: "0.00%", totalSupply: "$436.95K", icon: "⚡" }
+    ]
+  },
+  {
+    id: "eth-prime",
+    name: "ETH Prime Vault",
+    asset: "ETH",
+    apy: "9.8%",
+    tvl: "$8,721,456",
+    availableLiquidity: "$1,934,821",
+    risk: "Prime", 
+    riskLevel: 2,
+    description: "Balanced ETH strategy with optimized yields",
+    curator: "Gauntlet Risk",
+    guardian: "Nexus Mutual",
+    performanceFee: "10.00%",
+    feeRecipient: "Compound DAO",
+    owner: "Compound DAO",
+    vaultAddress: "0x8F2A...9dE1",
+    guardianAddress: "0x8Ab7...F6e5",
+    allocation: [
+      { protocol: "Lido Staking", percentage: 50, apy: "4.2%", totalSupply: "$4.36M", icon: "🔷" },
+      { protocol: "Rocket Pool", percentage: 30, apy: "4.8%", totalSupply: "$2.62M", icon: "🚀" },
+      { protocol: "Frax ETH", percentage: 20, apy: "5.1%", totalSupply: "$1.74M", icon: "💎" }
+    ]
+  }
+];
+
+export default function VaultDetail() {
+  const { id } = useParams();
+  const [depositAmount, setDepositAmount] = useState("");
+  const { assets, depositToVault } = useUserStore();
+  const { toast } = useToast();
+
+  const vault = vaultsData.find(v => v.id === id);
+  const userAsset = assets.find(asset => asset.symbol === vault?.asset);
+
+  if (!vault) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Vault not found</h1>
+          <Link to="/vaults">
+            <Button variant="outline">Back to Vaults</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleDeposit = () => {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount to deposit",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!userAsset || userAsset.balance < parseFloat(depositAmount)) {
+      toast({
+        title: "Insufficient balance",
+        description: `You don't have enough ${vault.asset}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    depositToVault(
+      vault.id,
+      vault.name,
+      vault.asset,
+      parseFloat(depositAmount),
+      parseFloat(vault.apy),
+      vault.risk
+    );
+
+    toast({
+      title: "Deposit successful!",
+      description: `Successfully deposited ${depositAmount} ${vault.asset} to ${vault.name}`,
+    });
+
+    setDepositAmount("");
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Address copied successfully",
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link to="/vaults" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Vaults
+          </Link>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {vault.name}
+          </h1>
+          <p className="text-muted-foreground">
+            {vault.description}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Key Metrics */}
+            <Card className="banking-card">
+              <CardHeader>
+                <CardTitle>Key Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-foreground">{vault.tvl}</p>
+                    <p className="text-sm text-muted-foreground">Total Deposits</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-foreground">{vault.availableLiquidity}</p>
+                    <p className="text-sm text-muted-foreground">Available Liquidity</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-success">{vault.apy}</p>
+                    <p className="text-sm text-muted-foreground">APY</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Market Allocation */}
+            <Card className="banking-card">
+              <CardHeader>
+                <CardTitle>Market Allocation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+                    <span>Market</span>
+                    <span>Allocation</span>
+                    <span>Total Supply</span>
+                    <span>Supply APY</span>
+                  </div>
+                  {vault.allocation.map((allocation, index) => (
+                    <div key={index} className="grid grid-cols-4 gap-4 items-center">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{allocation.icon}</span>
+                        <span className="font-medium">{allocation.protocol}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="text-sm font-medium">{allocation.percentage}%</div>
+                        <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary"
+                            style={{ width: `${allocation.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm font-medium">{allocation.totalSupply}</div>
+                      <div className="text-sm font-medium text-success">{allocation.apy}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vault Info */}
+            <Card className="banking-card">
+              <CardHeader>
+                <CardTitle>Vault Info</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Performance Fee</p>
+                    <p className="font-medium">{vault.performanceFee}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Fee Recipient</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium">{vault.feeRecipient}</p>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Owner</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium">{vault.owner}</p>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Vault Address</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium font-mono text-xs">{vault.vaultAddress}</p>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => copyToClipboard(vault.vaultAddress)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Curator</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium">{vault.curator}</p>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Guardian</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium font-mono text-xs">{vault.guardianAddress}</p>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => copyToClipboard(vault.guardianAddress)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Deposit Panel */}
+          <div className="space-y-6">
+            <Card className="banking-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-success">
+                  <Coins className="h-5 w-5" />
+                  <span>Supply {vault.asset}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Amount</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="text-lg h-12"
+                  />
+                  {userAsset && (
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{userAsset.balance.toFixed(6)} Available</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setDepositAmount(userAsset.balance.toString())}
+                        className="h-auto p-0 text-primary"
+                      >
+                        Max
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleDeposit}
+                  disabled={!depositAmount || parseFloat(depositAmount) <= 0}
+                  className="w-full bg-success hover:bg-success/90 text-white"
+                  size="lg"
+                >
+                  Enter Amount
+                </Button>
+
+                <div className="text-center text-xs text-muted-foreground">
+                  Powered by 🧭 Morpho
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Position Summary */}
+            <Card className="banking-card">
+              <CardHeader>
+                <CardTitle>Position Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Balance</span>
+                  <span className="font-medium">
+                    {userAsset ? userAsset.balance.toFixed(2) : "0.00"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">APY</span>
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium text-success">{vault.apy}</span>
+                    <TrendingUp className="h-3 w-3 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

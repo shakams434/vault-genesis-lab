@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useUserStore } from "@/hooks/useUserStore";
 import { 
   LayoutDashboard, 
   ArrowUpDown, 
@@ -25,6 +26,7 @@ const navItems = [
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { totalBalance } = useUserStore();
 
   return (
     <nav className="banking-card border-b border-border/50 sticky top-0 z-50 backdrop-blur-md">
@@ -66,7 +68,7 @@ export function Navigation() {
               +$247.38
             </Badge>
             <div className="text-sm text-muted-foreground">
-              <div className="font-medium text-foreground">$12,847.50</div>
+              <div className="font-medium text-foreground">${totalBalance.toFixed(2)}</div>
               <div className="text-xs">Total Balance</div>
             </div>
           </div>

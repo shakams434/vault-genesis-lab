@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useUserStore } from "@/hooks/useUserStore";
+import { Link } from "react-router-dom";
 import {
   ArrowDownUp,
   Coins,
@@ -19,46 +21,16 @@ import {
   AlertCircle
 } from "lucide-react";
 
-const supportedAssets = [
-  { 
-    symbol: "USDC", 
-    name: "USD Coin", 
-    balance: "5,247.30",
-    price: "$1.00",
-    icon: "💵"
-  },
-  { 
-    symbol: "ETH", 
-    name: "Ethereum", 
-    balance: "2.547",
-    price: "$2,432.18",
-    icon: "⚡"
-  },
-  { 
-    symbol: "WBTC", 
-    name: "Wrapped Bitcoin", 
-    balance: "0.123",
-    price: "$43,521.90",
-    icon: "₿"
-  },
-  { 
-    symbol: "DAI", 
-    name: "DAI Stablecoin", 
-    balance: "1,247.89",
-    price: "$0.9998",
-    icon: "🏛️"
-  }
-];
-
 export default function Swap() {
   const [fromAsset, setFromAsset] = useState("USDC");
   const [toAsset, setToAsset] = useState("ETH");
   const [fromAmount, setFromAmount] = useState("");
   const [isSwapping, setIsSwapping] = useState(false);
   const { toast } = useToast();
+  const { assets, swapAssets: updateSwapAssets } = useUserStore();
 
-  const fromAssetData = supportedAssets.find(asset => asset.symbol === fromAsset);
-  const toAssetData = supportedAssets.find(asset => asset.symbol === toAsset);
+  const fromAssetData = assets.find(asset => asset.symbol === fromAsset);
+  const toAssetData = assets.find(asset => asset.symbol === toAsset);
 
   // Simulated exchange calculations
   const exchangeRate = fromAsset === "USDC" && toAsset === "ETH" ? 0.000411 :
@@ -77,7 +49,7 @@ export default function Swap() {
     ? (parseFloat(estimatedOutput) * 0.98).toFixed(6)
     : "0.00";
 
-  const swapAssets = () => {
+  const swapAssetsDirection = () => {
     const temp = fromAsset;
     setFromAsset(toAsset);
     setToAsset(temp);
@@ -94,10 +66,22 @@ export default function Swap() {
       return;
     }
 
+    if (!fromAssetData || fromAssetData.balance < parseFloat(fromAmount)) {
+      toast({
+        title: "Insufficient balance",
+        description: `You don't have enough ${fromAsset}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSwapping(true);
     
     // Simulate swap processing
     setTimeout(() => {
+      // Update balances
+      updateSwapAssets(fromAsset, toAsset, parseFloat(fromAmount), parseFloat(estimatedOutput));
+      
       setIsSwapping(false);
       toast({
         title: "Swap completed!",
@@ -146,7 +130,7 @@ export default function Swap() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {supportedAssets.map((asset) => (
+                      {assets.map((asset) => (
                         <SelectItem key={asset.symbol} value={asset.symbol}>
                           <div className="flex items-center space-x-2">
                             <span>{asset.icon}</span>
@@ -166,8 +150,8 @@ export default function Swap() {
                 </div>
                 {fromAssetData && (
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Balance: {fromAssetData.balance} {fromAsset}</span>
-                    <span>{fromAssetData.price}</span>
+                    <span>Balance: {fromAssetData.balance.toFixed(6)} {fromAsset}</span>
+                    <span>${fromAssetData.price.toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -177,7 +161,7 @@ export default function Swap() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={swapAssets}
+                  onClick={swapAssetsDirection}
                   className="rounded-full"
                 >
                   <ArrowDownUp className="h-4 w-4" />
@@ -193,7 +177,7 @@ export default function Swap() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {supportedAssets.map((asset) => (
+                      {assets.map((asset) => (
                         <SelectItem key={asset.symbol} value={asset.symbol}>
                           <div className="flex items-center space-x-2">
                             <span>{asset.icon}</span>
@@ -209,8 +193,8 @@ export default function Swap() {
                 </div>
                 {toAssetData && (
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Balance: {toAssetData.balance} {toAsset}</span>
-                    <span>{toAssetData.price}</span>
+                    <span>Balance: {toAssetData.balance.toFixed(6)} {toAsset}</span>
+                    <span>${toAssetData.price.toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -267,16 +251,17 @@ export default function Swap() {
                 </Button>
 
                 {estimatedOutput !== "0.00" && (
-                  <Button
-                    onClick={handleDepositToVault}
-                    variant="success"
-                    size="lg"
-                    className="w-full"
-                    disabled={isSwapping}
-                  >
-                    <Vault className="h-4 w-4 mr-2" />
-                    Deposit {estimatedOutput} {toAsset} to Vault
-                  </Button>
+                  <Link to="/vaults">
+                    <Button
+                      variant="success"
+                      size="lg"
+                      className="w-full"
+                      disabled={isSwapping}
+                    >
+                      <Vault className="h-4 w-4 mr-2" />
+                      Deposit {estimatedOutput} {toAsset} to Vault
+                    </Button>
+                  </Link>
                 )}
               </div>
             </CardContent>

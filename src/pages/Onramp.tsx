@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useUserStore } from "@/hooks/useUserStore";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -24,6 +25,7 @@ export default function Onramp() {
   const [currency, setCurrency] = useState("USD");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { updateAssetBalance } = useUserStore();
 
   const exchangeRate = 0.9995; // Simulated rate USD -> USDC
   const fees = {
@@ -51,6 +53,14 @@ export default function Onramp() {
     // Simulate transaction processing
     setTimeout(() => {
       setIsProcessing(false);
+      
+      if (mode === "onramp") {
+        // Add USDC to user balance
+        updateAssetBalance("USDC", parseFloat(estimatedOutput));
+      } else {
+        // For offramp, we would deduct USDC (not implemented in this demo)
+      }
+      
       toast({
         title: "Transaction completed!",
         description: mode === "onramp" 
