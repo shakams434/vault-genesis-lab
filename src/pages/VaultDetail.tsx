@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserStore } from "@/hooks/useUserStore";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -17,7 +18,8 @@ import {
   Vault,
   ExternalLink,
   Copy,
-  Coins
+  Coins,
+  Wallet
 } from "lucide-react";
 
 const vaultsData = [
@@ -72,6 +74,8 @@ const vaultsData = [
 export default function VaultDetail() {
   const { id } = useParams();
   const [depositAmount, setDepositAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [walletConnected, setWalletConnected] = useState(false);
   const { assets, depositToVault } = useUserStore();
   const { toast } = useToast();
 
@@ -125,6 +129,42 @@ export default function VaultDetail() {
     });
 
     setDepositAmount("");
+  };
+
+  const handleWithdraw = () => {
+    if (!walletConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount to withdraw",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Withdraw successful!",
+      description: `Successfully withdrawn ${withdrawAmount} ${vault.asset}`,
+    });
+
+    setWithdrawAmount("");
+  };
+
+  const connectWallet = () => {
+    // Simulate wallet connection
+    setWalletConnected(true);
+    toast({
+      title: "Wallet connected",
+      description: "MetaMask wallet connected successfully",
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -279,52 +319,150 @@ export default function VaultDetail() {
             </Card>
           </div>
 
-          {/* Deposit Panel */}
+          {/* Deposit/Withdraw Panel */}
           <div className="space-y-6">
-            <Card className="banking-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-success">
-                  <Coins className="h-5 w-5" />
-                  <span>Supply {vault.asset}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="text-lg h-12"
-                  />
-                  {userAsset && (
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{userAsset.balance.toFixed(6)} Available</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setDepositAmount(userAsset.balance.toString())}
-                        className="h-auto p-0 text-primary"
+            {/* Wallet Connect Button */}
+            {!walletConnected && (
+              <Button
+                onClick={connectWallet}
+                className="w-full"
+                size="lg"
+                variant="premium"
+              >
+                <Wallet className="h-5 w-5 mr-2" />
+                Connect Wallet
+              </Button>
+            )}
+
+            {walletConnected && (
+              <div className="flex items-center justify-between p-3 bg-success/10 border border-success/20 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Wallet className="h-4 w-4 text-success" />
+                  <span className="text-sm font-medium">0x8F2A...9dE1</span>
+                </div>
+                <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+                  Connected
+                </Badge>
+              </div>
+            )}
+
+            <Card className="banking-card border-primary/20">
+              <CardContent className="p-0">
+                <Tabs defaultValue="deposit" className="w-full">
+                  <div className="p-6 pb-4">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                      <TabsTrigger 
+                        value="deposit"
+                        className="data-[state=active]:bg-success data-[state=active]:text-white"
                       >
-                        Max
-                      </Button>
+                        Deposit
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="withdraw"
+                        className="data-[state=inactive]:text-muted-foreground"
+                      >
+                        Withdraw
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="deposit" className="px-6 pb-6 space-y-4 mt-0">
+                    <p className="text-xs text-muted-foreground">
+                      Deposited funds are subject to a 3 days redemption period
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Amount</span>
+                        <span className="text-muted-foreground">
+                          Max: <span className="font-medium">{userAsset ? userAsset.balance.toFixed(2) : "0.00"}</span>
+                        </span>
+                      </div>
+                      
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                          <Coins className="h-5 w-5 text-primary" />
+                          <span className="font-medium">{vault.asset}</span>
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          disabled={!walletConnected}
+                          className="text-lg h-14 pl-24 pr-4 bg-background/50"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <Button
-                  onClick={handleDeposit}
-                  disabled={!depositAmount || parseFloat(depositAmount) <= 0}
-                  className="w-full bg-success hover:bg-success/90 text-white"
-                  size="lg"
-                >
-                  Enter Amount
-                </Button>
+                    <div className="flex items-center justify-between py-3 border-t border-border/50">
+                      <span className="text-sm text-muted-foreground">Balance</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">
+                          {userAsset ? userAsset.balance.toFixed(2) : "0.00"}
+                        </span>
+                        <Coins className="h-4 w-4 text-primary" />
+                      </div>
+                    </div>
 
-                <div className="text-center text-xs text-muted-foreground">
-                  Powered by 🧭 Morpho
-                </div>
+                    <Button
+                      onClick={handleDeposit}
+                      disabled={!walletConnected || !depositAmount || parseFloat(depositAmount) <= 0}
+                      className="w-full bg-success hover:bg-success/90 text-white"
+                      size="lg"
+                    >
+                      {!walletConnected ? "Connect Wallet" : "Deposit"}
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="withdraw" className="px-6 pb-6 space-y-4 mt-0">
+                    <p className="text-xs text-muted-foreground">
+                      Withdrawals are processed within 3 business days
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Amount</span>
+                        <span className="text-muted-foreground">
+                          Max: <span className="font-medium">0.00</span>
+                        </span>
+                      </div>
+                      
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                          <Coins className="h-5 w-5 text-primary" />
+                          <span className="font-medium">{vault.asset}</span>
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          disabled={!walletConnected}
+                          className="text-lg h-14 pl-24 pr-4 bg-background/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-t border-border/50">
+                      <span className="text-sm text-muted-foreground">Balance</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">0.00</span>
+                        <Coins className="h-4 w-4 text-primary" />
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleWithdraw}
+                      disabled={!walletConnected || !withdrawAmount || parseFloat(withdrawAmount) <= 0}
+                      className="w-full"
+                      size="lg"
+                      variant="outline"
+                    >
+                      {!walletConnected ? "Connect Wallet" : "Withdraw"}
+                    </Button>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 
