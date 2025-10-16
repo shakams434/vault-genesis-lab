@@ -14,6 +14,8 @@ export interface VaultPosition {
   vaultName: string;
   asset: string;
   amount: number;
+  shares: number;
+  sharePrice: number;
   apy: number;
   risk: string;
   value: number;
@@ -26,7 +28,7 @@ interface UserState {
   
   // Actions
   updateAssetBalance: (symbol: string, amount: number) => void;
-  depositToVault: (vaultId: string, vaultName: string, asset: string, amount: number, apy: number, risk: string) => void;
+  depositToVault: (vaultId: string, vaultName: string, asset: string, amount: number, shares: number, sharePrice: number, apy: number, risk: string) => void;
   withdrawFromVault: (vaultId: string, amount: number) => void;
   swapAssets: (fromSymbol: string, toSymbol: string, fromAmount: number, toAmount: number) => void;
   calculateTotalBalance: () => void;
@@ -87,7 +89,7 @@ export const useUserStore = create<UserState>()(
         });
       },
 
-      depositToVault: (vaultId: string, vaultName: string, asset: string, amount: number, apy: number, risk: string) => {
+      depositToVault: (vaultId: string, vaultName: string, asset: string, amount: number, shares: number, sharePrice: number, apy: number, risk: string) => {
         set((state) => {
           // Find asset price
           const assetData = state.assets.find(a => a.symbol === asset);
@@ -101,7 +103,13 @@ export const useUserStore = create<UserState>()(
             // Update existing position
             newVaultPositions = state.vaultPositions.map((position, index) => 
               index === existingPositionIndex 
-                ? { ...position, amount: position.amount + amount, value: position.value + value }
+                ? { 
+                    ...position, 
+                    amount: position.amount + amount,
+                    shares: position.shares + shares,
+                    value: position.value + value,
+                    sharePrice
+                  }
                 : position
             );
           } else {
@@ -111,6 +119,8 @@ export const useUserStore = create<UserState>()(
               vaultName,
               asset,
               amount,
+              shares,
+              sharePrice,
               apy,
               risk,
               value
